@@ -1,0 +1,53 @@
+﻿using System.Text.Json;
+using CommandLine;
+using GambitsCrew.CLI.Init;
+using GambitsCrew.CLI.NewCommand;
+using GambitsCrew.CLI.NewCondition;
+using GambitsCrew.CLI.NewCrew;
+using GambitsCrew.CLI.NewDeployment;
+using GambitsCrew.CLI.NewGambit;
+using GambitsCrew.CLI.NewOperator;
+using GambitsCrew.CLI.NewSelector;
+using GambitsCrew.CLI.Run;
+
+JsonSerializerOptions jsonOptions = new()
+{
+    WriteIndented = true
+};
+
+return await Parser.Default.ParseArguments(args)
+    .MapResult<
+        InitOptions,
+        NewCommandOptions,
+        NewConditionOptions,
+        NewCrewOptions,
+        NewDeploymentOptions,
+        NewGambitOptions,
+        NewOperatorOptions,
+        NewSelectorOptions,
+        RunOptions,
+        Task<int>
+    >(
+        InitCmd.RunAsync,
+        NewCommandCmd.RunAsync,
+        NewConditionCmd.RunAsync,
+        NewCrewCmd.RunAsync,
+        NewDeploymentCmd.RunAsync,
+        NewGambitCmd.RunAsync,
+        NewOperatorCmd.RunAsync,
+        NewSelectorCmd.RunAsync,
+        RunCmd.RunAsync,
+        errs => HandleErrors(errs, jsonOptions)
+    );
+
+
+
+static async Task<int> HandleErrors(IEnumerable<Error> errors, JsonSerializerOptions options)
+{
+    foreach(var error in errors)
+    {
+        await Console.Error.WriteLineAsync(JsonSerializer.Serialize(error, options));    
+    }
+
+    return 1;
+}
