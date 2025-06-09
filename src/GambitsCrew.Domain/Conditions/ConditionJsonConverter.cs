@@ -20,7 +20,18 @@ public class ConditionJsonConverter(
             }
 
             using var stream = fileProvider.GetCondition(name);
-            return JsonSerializer.Deserialize<ICondition>(stream, options)!;
+
+            try
+            {
+                return JsonSerializer.Deserialize<ICondition>(stream, options)!;
+            }
+            catch (JsonException ex)
+            {
+                throw new JsonException(
+                    $"Error serializing Condition: '{name}', see inner exception for details.", 
+                    ex
+                );
+            }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;

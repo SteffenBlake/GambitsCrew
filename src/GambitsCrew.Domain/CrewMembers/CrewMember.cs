@@ -5,8 +5,8 @@ namespace GambitsCrew.Domain.CrewMembers;
 
 public record CrewMember(
     string Name,
-    List<Gambit> Gambits
-)
+    List<IGambit> Gambits
+) : ICrewMember
 {
     public async Task RunAsync(EliteAPI api, CancellationToken cancellationToken)
     {

@@ -13,12 +13,19 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
         return services
+            .AddSingleton<GenericListJsonConverter<ICommand>>()
             .AddSingleton<CommandJsonConverter>()
+            .AddSingleton<GenericListJsonConverter<ICondition>>()
             .AddSingleton<ConditionJsonConverter>()
+            .AddSingleton<GenericListJsonConverter<CrewMember>>()
             .AddSingleton<CrewMemberJsonConverter>()
+            .AddSingleton<GenericListJsonConverter<Gambit>>()
             .AddSingleton<GambitJsonConverter>()
+            .AddSingleton<GenericListJsonConverter<INumberOperator>>()
             .AddSingleton<NumberOperatorJsonConverter>()
+            .AddSingleton<GenericListJsonConverter<IStringOperator>>()
             .AddSingleton<StringOperatorJsonConverter>()
+            .AddSingleton<GenericListJsonConverter<ISelector>>()
             .AddSingleton<SelectorJsonConverter>()
             .AddSingleton<JsonSerializerOptionsBuilder>();
     }

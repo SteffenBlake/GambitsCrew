@@ -154,7 +154,7 @@ $$"""
         FileProvider.Operators[containsOperatorId] =
 $$"""
 {
-    "contains": {{containsOperatorVal}}
+    "contains": "{{containsOperatorVal}}"
 }
 """;
         FileProvider.Operators[eqOperatorId] =
@@ -189,7 +189,7 @@ $$"""
         FileProvider.Commands[castCommandId] = 
 $$"""
 {
-    "assist": {
+    "cast": {
         "name": "{{castCommandName}}",
         "target": "{{castCommandTarget}}",
         "wait": {{castCommandWait}}
@@ -198,8 +198,8 @@ $$"""
 """;
 
         // Act
-        var deployment = await JsonSerializer.DeserializeAsync<Deployment>(
-            FileProvider.GetDeployment(deploymentId), JsonSerializerOptions
+        var deployment = JsonSerializer.Deserialize<Deployment>(
+            FileProvider.Deployments[deploymentId], JsonSerializerOptions
         );
 
         // Assert

@@ -20,7 +20,18 @@ public class SelectorJsonConverter(
             }
 
             using var stream = fileProvider.GetSelector(name);
-            return JsonSerializer.Deserialize<ISelector>(stream, options)!;
+
+            try
+            {
+                return JsonSerializer.Deserialize<ISelector>(stream, options)!;
+            }
+            catch (JsonException ex)
+            {
+                throw new JsonException(
+                    $"Error serializing Selector: '{name}', see inner exception for details.", 
+                    ex
+                );
+            }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;

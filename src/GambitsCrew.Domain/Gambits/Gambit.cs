@@ -7,7 +7,7 @@ namespace GambitsCrew.Domain.Gambits;
 public record Gambit(
     ISelector When,
     ICommand Do
-)
+) : IGambit
 {
     public async Task<bool> TryRunAsync(CrewContext ctx, CancellationToken cancellationToken)
     {

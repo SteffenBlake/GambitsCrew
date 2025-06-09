@@ -20,7 +20,17 @@ public class NumberOperatorJsonConverter(
             }
 
             using var stream = fileProvider.GetOperator(name);
-            return JsonSerializer.Deserialize<INumberOperator>(stream, options)!;
+            try
+            {
+                return JsonSerializer.Deserialize<INumberOperator>(stream, options)!;
+            }
+            catch (JsonException ex)
+            {
+                throw new JsonException(
+                    $"Error serializing Operator: '{name}', see inner exception for details.", 
+                    ex
+                );
+            }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;

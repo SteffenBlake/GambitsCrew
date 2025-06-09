@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GambitsCrew.Domain;
 using GambitsCrew.Domain.Commands;
 using GambitsCrew.Domain.Conditions;
 using GambitsCrew.Domain.CrewMembers;
@@ -17,27 +18,23 @@ public class GambitsTestFixture
 
     public GambitsTestFixture()
     {
-        JsonSerializerOptions = new JsonSerializerOptions();
-        JsonSerializerOptions.Converters.Add(
-            new CommandJsonConverter(FileProvider)
-        );
-        JsonSerializerOptions.Converters.Add(
-            new ConditionJsonConverter(FileProvider)
-        );
-        JsonSerializerOptions.Converters.Add(
-            new CrewMemberJsonConverter(FileProvider)
-        );
-        JsonSerializerOptions.Converters.Add(
-            new GambitJsonConverter(FileProvider)
-        );
-        JsonSerializerOptions.Converters.Add(
-            new NumberOperatorJsonConverter(FileProvider)
-        );
-        JsonSerializerOptions.Converters.Add(
-            new StringOperatorJsonConverter(FileProvider)
-        );
-        JsonSerializerOptions.Converters.Add(
+        var builder = new JsonSerializerOptionsBuilder(
+            new GenericListJsonConverter<ICommand>(),
+            new CommandJsonConverter(FileProvider),
+            new GenericListJsonConverter<ICondition>(),
+            new ConditionJsonConverter(FileProvider),
+            new GenericListJsonConverter<ICrewMember>(),
+            new CrewMemberJsonConverter(FileProvider),
+            new GenericListJsonConverter<IGambit>(),
+            new GambitJsonConverter(FileProvider),
+            new GenericListJsonConverter<INumberOperator>(),
+            new NumberOperatorJsonConverter(FileProvider),
+            new GenericListJsonConverter<IStringOperator>(),
+            new StringOperatorJsonConverter(FileProvider),
+            new GenericListJsonConverter<ISelector>(),
             new SelectorJsonConverter(FileProvider)
         );
+
+        JsonSerializerOptions = builder.Compile(); 
     }
 }

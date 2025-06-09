@@ -20,7 +20,18 @@ public class CommandJsonConverter(
             }
 
             using var stream = fileProvider.GetCommand(name);
-            return JsonSerializer.Deserialize<ICommand>(stream, options)!;
+
+            try
+            {
+                return JsonSerializer.Deserialize<ICommand>(stream, options)!;
+            }
+            catch (JsonException ex)
+            {
+                throw new JsonException(
+                    $"Error serializing Command: '{name}', see inner exception for details.", 
+                    ex
+                );
+            }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;

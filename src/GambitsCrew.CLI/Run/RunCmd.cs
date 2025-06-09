@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Text.Json;
 using EliteMMO.API;
 using GambitsCrew.Domain;
-using GambitsCrew.Domain.CrewMembers;
 using GambitsCrew.Domain.Deployments;
 using GambitsCrew.Domain.Extensions;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,8 +44,7 @@ public static class RunCmd
             var api = new EliteAPI(process.Id);
             if (crew.TryGetValue(api.Player.Name, out var crewMember))
             {
-                var ctx = new CrewContext(api);
-                runners.Add(crewMember.RunAsync(ctx, cts.Token));
+                runners.Add(crewMember.RunAsync(api, cts.Token));
             }
         }
 
