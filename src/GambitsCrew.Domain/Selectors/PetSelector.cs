@@ -1,5 +1,5 @@
 using GambitsCrew.Domain.Conditions;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
 
@@ -7,13 +7,14 @@ public record PetSelector(
     List<ICondition> Pet
 ) : ISelector
 {
-    public bool Eval(CrewContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        if (ctx.Pet == null)
+        var pet = api.PetEntity;
+        if (pet == null)
         {
             return false;
         }
-        ctx.ContextualEntity = ctx.Pet;
+        ctx.ContextualEntity = pet;
         ctx.ContextualTarget = "<pet>";
 
         return Pet.All(condition => condition.Eval(ctx));

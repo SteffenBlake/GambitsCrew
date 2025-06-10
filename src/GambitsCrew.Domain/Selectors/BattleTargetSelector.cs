@@ -1,5 +1,6 @@
 using GambitsCrew.Domain.Conditions;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Extensions;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
 
@@ -7,16 +8,16 @@ public record BattleTargetSelector(
     List<ICondition> BT 
 ) : ISelector
 {
-    public bool Eval(CrewContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        if (ctx.BattleTarget == null)
+        var battleTarget = api.BattleTarget();
+        if (battleTarget == null)
         {
             return false;
         }
 
         ctx.ContextualTarget = "<bt>";
-       
-        ctx.ContextualEntity = ctx.BattleTarget;
+        ctx.ContextualEntity = battleTarget;
 
         return BT.All(condition => condition.Eval(ctx)); 
     }

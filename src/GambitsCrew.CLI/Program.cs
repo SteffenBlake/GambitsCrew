@@ -15,7 +15,17 @@ JsonSerializerOptions jsonOptions = new()
     WriteIndented = true
 };
 
-return await Parser.Default.ParseArguments(args)
+return await Parser.Default.ParseArguments<
+        InitOptions,
+        NewCommandOptions,
+        NewConditionOptions,
+        NewCrewOptions,
+        NewDeploymentOptions,
+        NewGambitOptions,
+        NewOperatorOptions,
+        NewSelectorOptions,
+        RunOptions
+    >(args:args)
     .MapResult<
         InitOptions,
         NewCommandOptions,
@@ -37,17 +47,5 @@ return await Parser.Default.ParseArguments(args)
         NewOperatorCmd.RunAsync,
         NewSelectorCmd.RunAsync,
         RunCmd.RunAsync,
-        errs => HandleErrors(errs, jsonOptions)
+        errs => Task.FromResult(1)
     );
-
-
-
-static async Task<int> HandleErrors(IEnumerable<Error> errors, JsonSerializerOptions options)
-{
-    foreach(var error in errors)
-    {
-        await Console.Error.WriteLineAsync(JsonSerializer.Serialize(error, options));    
-    }
-
-    return 1;
-}

@@ -1,8 +1,8 @@
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
 
 public interface ISelector
 {
-    bool Eval(CrewContext ctx);
+    bool Eval(GambitContext ctx, IEliteAPI api);
 }

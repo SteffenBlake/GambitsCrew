@@ -52,7 +52,7 @@ public class SelectorJsonConverter(
         {
             return raw.Deserialize<BattleTargetSelector>(options);
         }
-        if (raw.ContainsKey("ldr"))
+        if (raw.ContainsKey("l"))
         {
             return raw.Deserialize<LeaderSelector>(options);
         }

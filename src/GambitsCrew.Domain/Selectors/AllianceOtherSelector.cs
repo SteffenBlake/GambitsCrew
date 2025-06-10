@@ -1,5 +1,6 @@
 using GambitsCrew.Domain.Conditions;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Extensions;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
 
@@ -7,9 +8,9 @@ public record AllianceOtherSelector(
     List<ICondition> AX
 ) : ISelector
 {
-    public bool Eval(CrewContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        foreach(var a in ctx.Alliance.Skip(1))
+        foreach(var a in api.AllianceEntities().Skip(1))
         {
             ctx.ContextualEntity = a;
             ctx.ContextualTarget = a.Name;

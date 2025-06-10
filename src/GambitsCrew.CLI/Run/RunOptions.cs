@@ -2,7 +2,7 @@ using CommandLine;
 
 namespace GambitsCrew.CLI.Run;
 
-[Verb(name: "run", isDefault: true, HelpText = HelpText)]
+[Verb(name: "run", HelpText = HelpText)]
 public class RunOptions 
 {
     private const string HelpText = 

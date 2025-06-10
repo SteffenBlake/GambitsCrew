@@ -1,5 +1,5 @@
 using EliteMMO.API;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Extensions;
 
 namespace GambitsCrew.Domain.Commands;
@@ -15,57 +15,60 @@ public record PetCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        if (ctx.Pet == null)
+        if (api.PetEntity == null)
         {
             return false;
         }
 
-        if (ctx.PlayerEntity.IsBusy())
+        var playerEntity = api.PlayerEntity;
+        if (playerEntity.IsBusy())
         {
             return false;
         }
 
-        var ability = ctx.Api.Resources.GetAbility(Pet.Name, 0) ??
-            throw new ArgumentException($"No known Pet Cmd: '{Pet.Name}'");
-
-        var type = (AbilityType)ability.Type;
-        if (!type.HasFlag(AbilityType.Pet)
-        )
+        // Check Idle/Engaged 
+        var status = (EntityStatus)playerEntity.Status;
+        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
         {
-            throw new ArgumentException($"'{Pet.Name}' is not a Pet Cmd"); 
+            return false;
         }
+
+        var ability = api.GetPetSkill(Pet.Name);
 
         // Check valid target
         var validTargets = (TargetType)ability.ValidTargets;
-        if (!ctx.EnsureContextualTarget(Pet.Target, validTargets))
-        {
-            throw new InvalidOperationException($"No target inferred for Job Ability '{Pet.Name}'");
-        }
-
-        if ((validTargets & ctx.ContextualTargetType) <= 0)
+        if (!ctx.EnsureContextualTarget(api, Pet.Target, validTargets))
         {
             throw new InvalidOperationException(
-                $"Tried to use Job Ability '{Pet.Name}' on target '{ctx.ContextualEntity!.Name}'"
+                $"No target inferred for Job Ability '{Pet.Name}'"
             );
         }
 
+        if (!api.TargetsOverlap(ctx.ContextualEntity, validTargets))
+        {
+            throw new InvalidOperationException(
+                $"Tried to use Pet Skill '{Pet.Name}' on target '{ctx.ContextualEntity!.Name}'"
+            );
+        }
+
+        var playerMember = api.PlayerMember;
         // Check TP
-        if (ctx.Player.TP < ability.TP)
+        if (playerMember.CurrentTP < ability.TP)
         {
             return false;
         }
 
         // Check MP
-        if (ctx.Player.MP < ability.MP)
+        if (playerMember.CurrentMP < ability.MP)
         {
             return false;
         }
 
         // Check can use
-        if (!ctx.Player.HasAbility(ability.ID))
+        if (!api.PlayerHasAbility(ability.ID))
         {
             return false;
         }
@@ -77,13 +80,15 @@ public record PetCommand(
         }
 
         // Check if on cooldown
-        var index = ctx.AbilityIdsIndexed[ability.TimerID];
-        if (ctx.Api.Recast.GetAbilityRecast(index) > 0)
+        if (api.GetRecast(ability) > 0)
         {
             return false;
         }
         
-        ctx.Api.ThirdParty.SendString($"/pet {Pet.Name} {ctx.ContextualTarget}");
+        api.SendString($"/pet \"{Pet.Name}\" {ctx.ContextualTarget}");
+
+        // Wait for busy to finish
+        await api.WaitForPlayerNotBusy(cancellationToken);
 
         // Run option added wait time
         if (Pet.Wait.HasValue)

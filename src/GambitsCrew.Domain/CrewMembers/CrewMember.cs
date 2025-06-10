@@ -1,4 +1,3 @@
-using EliteMMO.API;
 using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.CrewMembers;
@@ -8,25 +7,30 @@ public record CrewMember(
     List<IGambit> Gambits
 ) : ICrewMember
 {
-    public async Task RunAsync(EliteAPI api, CancellationToken cancellationToken)
+    public async Task RunAsync(IEliteAPI api, CancellationToken cancellationToken)
     {
+        Console.WriteLine(
+            $"Binding to character: {api.PlayerEntity.Name}"
+        );
+
         while (!cancellationToken.IsCancellationRequested)
         {
-            var ctx = new CrewContext(api);
-            await RunCycleAsync(ctx, cancellationToken);
+            await RunCycleAsync(api, cancellationToken);
         }
     }
 
-    private async Task RunCycleAsync(CrewContext ctx, CancellationToken cancellationToken)
+    private async Task RunCycleAsync(
+        IEliteAPI api, CancellationToken cancellationToken
+    )
     {
         foreach (var gambit in Gambits)
         {
-            if (await gambit.TryRunAsync(ctx, cancellationToken))
+            if (await gambit.TryRunAsync(api, cancellationToken))
             {
                 return;
             }
         }
 
-        await Task.Delay(500, cancellationToken);
+        await Task.Delay(2000, cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
 using GambitsCrew.Domain.Conditions;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Extensions;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
 
@@ -7,9 +8,9 @@ public record PartySelector(
     List<ICondition> P 
 ) : ISelector
 {
-    public bool Eval(CrewContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        foreach(var pt in ctx.Party)
+        foreach(var pt in api.PartyEntities())
         {
             ctx.ContextualEntity = pt;
             ctx.ContextualTarget = pt.Name;

@@ -1,4 +1,6 @@
-using GambitsCrew.Domain.CrewMembers;
+using EliteMMO.API;
+using GambitsCrew.Domain.Extensions;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Commands;
 
@@ -12,19 +14,24 @@ public record AssistCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
+        var validTargets = TargetType.PartyMember | TargetType.PartyMember;
+        if (!ctx.EnsureContextualTarget(api, Assist.Target, validTargets))
+        {
+            throw new InvalidOperationException("Could not infer a valid target for Assist");
+        }
+
         // Find the member to assist
-        var memberName = Assist.Target ?? ctx.ContextualTarget;
-        var member = ctx.Alliance.SingleOrDefault(a => a.Name == memberName);
+        var member = api.AllianceEntities().SingleOrDefault(a => a.Name == ctx.ContextualTarget);
         if (member == null)
         {
             return false;
         }
 
         // Check if we need to do an assist
-        var currentTargetId = ctx.PlayerEntity.TargetingIndex;
+        var currentTargetId = api.PlayerEntity.TargetingIndex;
         var assistTargetId = member.TargetingIndex;
         if (assistTargetId <= 0 || assistTargetId == currentTargetId)
         {
@@ -32,14 +39,20 @@ public record AssistCommand(
         }
 
         // Check if too far away
-        var assistTargetEntity = ctx.Api.Entity.GetEntity(assistTargetId);
+        var assistTargetEntity = api.GetEntity(assistTargetId);
+        if (assistTargetEntity == null)
+        {
+            return false;
+        }
+
         if (assistTargetEntity.Distance <= 0 || assistTargetEntity.Distance > 49)
         {
             return false;
         }
 
         // Execute
-        ctx.Api.Target.SetTarget(assistTargetId);
+        api.SetTarget(assistTargetId);
+
         ctx.ContextualEntity = assistTargetEntity;
         ctx.ContextualTarget = "<t>";
 

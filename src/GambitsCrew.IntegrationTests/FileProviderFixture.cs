@@ -10,13 +10,13 @@ using GambitsCrew.IntegrationTests.Mocks;
 
 namespace GambitsCrew.IntegrationTests;
 
-public class GambitsTestFixture 
+public class FileProviderFixture 
 {
     public MockFileProviderService FileProvider { get; } = new();
     
     public JsonSerializerOptions JsonSerializerOptions { get; }
 
-    public GambitsTestFixture()
+    public FileProviderFixture()
     {
         var builder = new JsonSerializerOptionsBuilder(
             new GenericListJsonConverter<ICommand>(),

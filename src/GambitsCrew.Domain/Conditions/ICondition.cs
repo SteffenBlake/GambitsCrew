@@ -1,8 +1,8 @@
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Conditions;
 
 public interface ICondition 
 {
-    bool Eval(CrewContext ctx);
+    bool Eval(GambitContext ctx);
 }

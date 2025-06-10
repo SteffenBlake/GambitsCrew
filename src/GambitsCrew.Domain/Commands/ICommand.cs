@@ -1,8 +1,10 @@
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Commands;
 
 public interface ICommand 
 {
-    Task<bool> TryInvokeAsync(CrewContext ctx, CancellationToken cancellationToken);
+    Task<bool> TryInvokeAsync(
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
+    );
 }

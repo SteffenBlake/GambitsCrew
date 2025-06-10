@@ -1,4 +1,4 @@
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Commands;
 
@@ -7,7 +7,7 @@ public record AllCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
         var success = true;
@@ -16,7 +16,7 @@ public record AllCommand(
         // and we actually want every command to run though
         foreach(var cmd in All)
         {
-            success &= await cmd.TryInvokeAsync(ctx, cancellationToken);
+            success &= await cmd.TryInvokeAsync(ctx, api, cancellationToken);
         }
 
         return success;

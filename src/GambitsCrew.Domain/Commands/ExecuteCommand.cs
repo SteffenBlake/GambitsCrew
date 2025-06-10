@@ -1,4 +1,4 @@
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Commands;
 
@@ -7,9 +7,11 @@ public record ExecuteCommand(
 ) : ICommand
 {
 
-    public Task<bool> TryInvokeAsync(CrewContext ctx, CancellationToken cancellationToken)
+    public Task<bool> TryInvokeAsync(
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
+    )
     {
-        ctx.Api.ThirdParty.SendString(Execute);
+        api.SendString(Execute);
         return Task.FromResult(true);
     }
 }

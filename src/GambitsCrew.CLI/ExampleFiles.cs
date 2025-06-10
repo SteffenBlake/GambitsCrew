@@ -60,16 +60,16 @@ public static class ExampleFiles
     public const string ExampleOperatorText = 
 """
 {
-    "eq", 10
+    "eq": 10
 }
 """;
 
     public const string ExampleSelectorText = 
 """
 {
-    "And": [
-        "L": [ "ExampleSelector" ],
-        "P": [ "ExampleSelector" ]
+    "and": [
+        { "l": [ "ExampleCondition" ] },
+        { "p": [ "ExampleCondition" ] }
     ]
 }
 """;

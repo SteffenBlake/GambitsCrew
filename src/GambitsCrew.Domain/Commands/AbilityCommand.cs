@@ -1,5 +1,5 @@
 using EliteMMO.API;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Extensions;
 
 namespace GambitsCrew.Domain.Commands;
@@ -15,49 +15,48 @@ public record AbilityCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        var ability = ctx.Api.Resources.GetAbility(JA.Name, 0) ??
-            throw new ArgumentException($"No known Ability: '{JA.Name}'");
-
-        var type = (AbilityType)ability.Type;
-        if (
-            type.HasFlag(AbilityType.Weaponskill) ||
-            type.HasFlag(AbilityType.Pet)
-        )
-        {
-            throw new ArgumentException($"'{JA.Name}' is not a Job Ability"); 
-        }
+        var ability = api.GetJobAbility(JA.Name);
 
         // Check valid target
         var validTargets = (TargetType)ability.ValidTargets;
-        if (!ctx.EnsureContextualTarget(JA.Target, validTargets))
+        if (!ctx.EnsureContextualTarget(api, JA.Target, validTargets))
         {
             throw new InvalidOperationException($"No target inferred for Job Ability '{JA.Name}'");
         }
 
-        if ((validTargets & ctx.ContextualTargetType) <= 0)
+        if (!api.TargetsOverlap(ctx.ContextualEntity, validTargets))
         {
             throw new InvalidOperationException(
                 $"Tried to use Job Ability '{JA.Name}' on target '{ctx.ContextualEntity!.Name}'"
             );
         }
 
+        var playerEntity = api.PlayerEntity;
         // Check busy
-        if (ctx.PlayerEntity.IsBusy())
+        if (playerEntity.IsBusy())
         {
             return false;
         }
 
+        // Check Idle/Engaged 
+        var status = (EntityStatus)playerEntity.Status;
+        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
+        {
+            return false;
+        }
+
+        var player = api.PlayerMember;
         // Check TP
-        if (ctx.Player.TP < ability.TP)
+        if (player.CurrentTP < ability.TP)
         {
             return false;
         }
 
         // Check MP
-        if (ctx.Player.MP < ability.MP)
+        if (player.CurrentMP < ability.MP)
         {
             return false;
         }
@@ -69,25 +68,21 @@ public record AbilityCommand(
         }
 
         // Check can use
-        if (!ctx.Player.HasAbility(ability.ID))
+        if (!api.PlayerHasAbility(ability.ID))
         {
             return false;
         }
 
         // Check if on cooldown
-        var index = ctx.AbilityIdsIndexed[ability.TimerID];
-        if (ctx.Api.Recast.GetAbilityRecast(index) > 0)
+        if (api.GetRecast(ability) > 0)
         {
             return false;
         }
 
-        ctx.Api.ThirdParty.SendString($"/ja {JA.Name} {ctx.ContextualTarget}");
+        api.SendString($"/ja \"{JA.Name}\" {ctx.ContextualTarget}");
 
         // Wait for busy to finish
-        do
-        {
-            await Task.Delay(100, cancellationToken);
-        } while (ctx.PlayerEntity.IsBusy());
+        await api.WaitForPlayerNotBusy(cancellationToken);
 
         // Run option added wait time
         if (JA.Wait.HasValue)

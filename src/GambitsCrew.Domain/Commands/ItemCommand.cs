@@ -1,11 +1,12 @@
 using EliteMMO.API;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Extensions;
 
 namespace GambitsCrew.Domain.Commands;
 
 public record ItemCommandInfo(
     string Name,
+    string? Target = null,
     int? Wait = null
 );
 
@@ -14,13 +15,10 @@ public record ItemCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        ctx.ContextualEntity ??= ctx.PlayerEntity;
-
-        var item = ctx.Api.Resources.GetItem(Item.Name, 0) ??
-            throw new ArgumentException($"No known Item: '{Item.Name}'");
+        var item = api.GetItem(Item.Name);
 
         var flags = (ItemFlagsMask)item.Flags;
         if (!flags.HasFlag(ItemFlagsMask.CanUse))
@@ -29,32 +27,34 @@ public record ItemCommand(
         }
        
         // Check busy
-        if (ctx.PlayerEntity.IsBusy())
+        if (api.PlayerEntity.IsBusy())
         {
             return false;
         }
 
         // Check inventory
-        if (!ctx.InventoryItemIds.Contains((ushort)item.ItemID))
+        if (!api.GetInventory().Any(i => i.Id == (ushort)item.ItemID))
         {
             return false;
         }
 
         var validTargets = (TargetType)item.ValidTargets;
-        if ((validTargets & ctx.ContextualTargetType) <= 0)
+        if (!ctx.EnsureContextualTarget(api, Item.Target, validTargets))
+        {
+            throw new InvalidOperationException($"No target inferred for item '{Item.Name}'");
+        }
+
+        if (!api.TargetsOverlap(ctx.ContextualEntity, validTargets))
         {
             throw new InvalidOperationException(
                 $"Tried to use Item '{item.Name}' on target '{ctx.ContextualEntity!.Name}'"
             );
         }
 
-        ctx.Api.ThirdParty.SendString($"/item {Item.Name} <me>");
+        api.SendString($"/item {Item.Name} <me>");
         
         // Wait for busy to finish
-        do
-        {
-            await Task.Delay(100, cancellationToken);
-        } while (ctx.PlayerEntity.IsBusy());
+        await api.WaitForPlayerNotBusy(cancellationToken);
         
         // Run option added wait time
         if (Item.Wait.HasValue)

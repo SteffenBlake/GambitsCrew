@@ -1,5 +1,5 @@
 using EliteMMO.API;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Extensions;
 
 namespace GambitsCrew.Domain.Commands;
@@ -15,39 +15,40 @@ public record CastCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        var spell = ctx.Api.Resources.GetSpell(Cast.Name, 0) ??
-            throw new ArgumentException($"No known spell: '{Cast.Name}'");
-
+        var player = api.PlayerEntity;
         // Check if in the middle of another action
-        if (ctx.PlayerEntity.IsBusy())
+        if (player.IsBusy())
         {
             return false;
         }
 
         // Check Idle/Engaged 
-        var status = (EntityStatus)ctx.Player.Status;
-        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
+        var status = (EntityStatus)player.Status;
+        if (status != EntityStatus.Idle)
         {
             return false;
         }
 
+        var spell = api.GetSpell(Cast.Name);
+
+        var playerMember = api.PlayerMember;
         // Check have enough mp
-        if (ctx.Player.MP < spell.MPCost)
+        if (playerMember.CurrentMP < spell.MPCost)
         {
             return false;
         }
 
         // Check if we can cast this spell at all
-        if (!ctx.Player.HasSpell(spell.ID))
+        if (!api.PlayerHasSpell(spell.ID))
         {
             return false;
         }
 
         // Check if on cooldown
-        if (ctx.Api.Recast.GetSpellRecast(spell.Index) > 0)
+        if (api.GetSpellRecast(spell.Index) > 0)
         {
             return false;
         }
@@ -60,26 +61,17 @@ public record CastCommand(
 
         // Check valid target
         var validTargets = (TargetType)spell.ValidTargets;
-        if (!ctx.EnsureContextualTarget(Cast.Target, validTargets))
+        if (!ctx.EnsureContextualTarget(api, Cast.Target, validTargets))
         {
             throw new InvalidOperationException($"No target inferred for Spell '{Cast.Name}'");
         }
 
-        if ((validTargets & ctx.ContextualTargetType) <= 0)
-        {
-            throw new InvalidOperationException(
-                $"Tried to cast spell '{spell.Name}' on target '{ctx.ContextualEntity!.Name}'"
-            );
-        }
-
-        ctx.Api.ThirdParty.SendString($"/ma {Cast.Name} {ctx.ContextualTarget}");
+        api.SendString($"/ma \"{Cast.Name}\" {ctx.ContextualTarget}");
 
         await Task.Delay(300, cancellationToken);
 
-        do
-        {
-            await Task.Delay(100, cancellationToken);
-        } while (ctx.PlayerEntity.IsBusy());
+        // Wait for busy to finish
+        await api.WaitForPlayerNotBusy(cancellationToken);
 
         if (Cast.Wait.HasValue)
         {

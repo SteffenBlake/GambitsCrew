@@ -5,12 +5,12 @@ using GambitsCrew.Domain.Deployments;
 using GambitsCrew.Domain.Operators;
 using GambitsCrew.Domain.Selectors;
 
-namespace GambitsCrew.IntegrationTests;
+namespace GambitsCrew.IntegrationTests.Parsing;
 
-public class ParsingTests : GambitsTestFixture
+public class JoiningOtherFileTests : FileProviderFixture
 {
     [Fact]
-    public async Task SerializerFullStackTests()
+    public async Task Parsing_JoinOtherFiles_Succeeds()
     {
         // Arrange
         var deploymentId = "TestDeployment";
@@ -198,8 +198,8 @@ $$"""
 """;
 
         // Act
-        var deployment = JsonSerializer.Deserialize<Deployment>(
-            FileProvider.Deployments[deploymentId], JsonSerializerOptions
+        var deployment = await JsonSerializer.DeserializeAsync<Deployment>(
+            FileProvider.GetDeployment(deploymentId), JsonSerializerOptions
         );
 
         // Assert

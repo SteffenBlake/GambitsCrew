@@ -14,8 +14,14 @@ public static class RunCmd
     {
         var cts = new CancellationTokenSource();
 
-        var path = Path.Combine(Directory.GetCurrentDirectory(), options.Path);
+        var path = Path.GetFullPath(
+            Path.Combine(Directory.GetCurrentDirectory(), options.Path)
+        );
         var cwd = Path.GetDirectoryName(path) ?? throw new InvalidOperationException();
+
+        Console.WriteLine(
+            $"Using CWD: '{cwd}'"
+        );
 
         var fileProvider = new ProjectFileProviderService(cwd);
 
@@ -33,6 +39,8 @@ public static class RunCmd
             )) ?? throw new InvalidOperationException(
                 $"Unable to serialize deployment '{options.Path}'"
             );
+
+        Console.WriteLine(JsonSerializer.Serialize(deployment));
 
         List<Task> runners = [];
 

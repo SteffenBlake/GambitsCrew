@@ -1,4 +1,4 @@
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Operators;
 
 namespace GambitsCrew.Domain.Conditions;
@@ -7,9 +7,13 @@ public record StatusCondition(
     List<INumberOperator> Status
 ) : ICondition
 {
-    public bool Eval(CrewContext ctx)
+    public bool Eval(GambitContext ctx)
     {
-        return Status.All(condition => condition.Eval((int)ctx.ContextualEntity!.Status));
+        if (ctx.ContextualEntity == null)
+        {
+            return false;
+        }
+        return Status.All(condition => condition.Eval((int)ctx.ContextualEntity.Status));
     }
 }
 

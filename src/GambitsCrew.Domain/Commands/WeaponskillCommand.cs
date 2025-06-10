@@ -1,5 +1,5 @@
 using EliteMMO.API;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Extensions;
 
 namespace GambitsCrew.Domain.Commands;
@@ -15,37 +15,34 @@ public record WeaponskillCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        if (ctx.ContextualEntity == null)
+        var validTargets = TargetType.Enemy;
+        if (!ctx.EnsureContextualTarget(api, null, validTargets))
         {
-            throw new InvalidOperationException("Entity didnt get set?");
+            throw new InvalidOperationException($"No target inferred for item '{WS.Name}'");
         }
 
-        var ws = ctx.Api.Resources.GetAbility(WS.Name, 0) ??
-            throw new ArgumentException($"No known Weaponskill: '{WS.Name}'");
+        var ws = api.GetWeaponskill(WS.Name);
 
-        var type = (AbilityType)ws.Type;
-        if (!type.HasFlag(AbilityType.Weaponskill))
-        {
-            throw new ArgumentException($"'{WS.Name}' is not a Weaponskill");
-        }
-
-        // Check targeting enemy
-        if (!ctx.ContextualTargetType!.Value.HasFlag(TargetType.Enemy))
-        {
-            return false;
-        }
-
+        var playerEntity = api.PlayerEntity;
         // Check busy
-        if (ctx.PlayerEntity.IsBusy())
+        if (playerEntity.IsBusy())
         {
             return false;
         }
 
+        // Check Idle/Engaged 
+        var status = (EntityStatus)playerEntity.Status;
+        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
+        {
+            return false;
+        }
+
+        var playerMember = api.PlayerMember;
         // Check TP
-        if (ctx.Player.TP < WS.TP)
+        if (playerMember.CurrentTP < WS.TP)
         {
             return false;
         }
@@ -57,18 +54,15 @@ public record WeaponskillCommand(
         }
 
         // Check can use WS
-        if (!ctx.Player.HasWeaponSkill(ws.ID))
+        if (!api.PlayerHasWeaponskill(ws.ID))
         {
             return false;
         }
 
-        ctx.Api.ThirdParty.SendString($"/ws {WS.Name} {ctx.ContextualTarget}");
+        api.SendString($"/ws \"{WS.Name}\" {ctx.ContextualTarget}");
 
         // Wait for busy to finish
-        do
-        {
-            await Task.Delay(100, cancellationToken);
-        } while (ctx.PlayerEntity.IsBusy());
+        await api.WaitForPlayerNotBusy(cancellationToken);
 
         // Run option added wait time
         if (WS.Wait.HasValue)

@@ -1,5 +1,5 @@
 using EliteMMO.API;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Commands;
 
@@ -12,12 +12,13 @@ public record AttackCommand(
 ) : ICommand
 {
     public async Task<bool> TryInvokeAsync(
-        CrewContext ctx, CancellationToken cancellationToken
+        GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        if (ctx.ContextualEntity == null)
+        var validTargets = TargetType.Enemy;
+        if (!ctx.EnsureContextualTarget(api, null, validTargets))
         {
-            throw new InvalidOperationException("Entity didnt get set?");
+            throw new InvalidOperationException("Could not infer a valid target for Attack");
         }
 
         // Check if enemy
@@ -28,7 +29,7 @@ public record AttackCommand(
         }
 
         // Check already engaged
-        var status = (EntityStatus)ctx.Player.Status;
+        var status = (EntityStatus)api.PlayerEntity.Status;
         if (status.HasFlag(EntityStatus.Engaged))
         {
             return false;
@@ -47,12 +48,13 @@ public record AttackCommand(
             return false;
         }
 
-        ctx.Api.ThirdParty.SendString("/attack");
+        api.SendString("/attack");
 
         // Wait for engaged status to be true
         do
         {
-            await Task.Delay(200, cancellationToken);
+            await Task.Delay(500, cancellationToken);
+            status = (EntityStatus)api.PlayerEntity.Status;
         } while (!status.HasFlag(EntityStatus.Engaged));
 
         // Run option added wait time

@@ -1,6 +1,5 @@
-using EliteMMO.API;
 using GambitsCrew.Domain.Conditions;
-using GambitsCrew.Domain.CrewMembers;
+using GambitsCrew.Domain.Gambits;
 using GambitsCrew.Domain.Extensions;
 
 namespace GambitsCrew.Domain.Selectors;
@@ -9,23 +8,10 @@ public record ScanSelector(
     List<ICondition> Scan
 ) : ISelector
 {
-    public bool Eval(CrewContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        for (var index = 0; index <= 1024; index++)
+        foreach(var entity in api.ScanEnemies())
         {
-            var entity = ctx.Api.Entity.GetEntity(index);
-            var entityStatus = (EntityStatus)entity.Status;
-
-            if (entity.Exists() || entityStatus.HasFlag(EntityStatus.Dead))
-            {
-                continue;
-            }
-
-            if (entity.Distance > 49)
-            {
-                continue;
-            }
-
             ctx.ContextualEntity = entity;
             ctx.ContextualTarget = entity.TargetingIndex.ToString();
 

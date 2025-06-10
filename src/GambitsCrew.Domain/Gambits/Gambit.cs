@@ -1,5 +1,4 @@
 using GambitsCrew.Domain.Commands;
-using GambitsCrew.Domain.CrewMembers;
 using GambitsCrew.Domain.Selectors;
 
 namespace GambitsCrew.Domain.Gambits;
@@ -9,11 +8,14 @@ public record Gambit(
     ICommand Do
 ) : IGambit
 {
-    public async Task<bool> TryRunAsync(CrewContext ctx, CancellationToken cancellationToken)
+    public async Task<bool> TryRunAsync(
+        IEliteAPI api, CancellationToken cancellationToken
+    )
     {
-        if (When.Eval(ctx))
+        var ctx = new GambitContext();
+        if (When.Eval(ctx, api))
         {
-            return await Do.TryInvokeAsync(ctx, cancellationToken);
+            return await Do.TryInvokeAsync(ctx, api, cancellationToken);
         }
 
         return false;

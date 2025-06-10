@@ -24,9 +24,17 @@
     <ProjectReference Include="..\GambitsCrew.Domain\GambitsCrew.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <Reference Include="EliteMMO.API">
       <HintPath>..\..\lib\EliteMMO.API.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Reference Include="EliteMMO.API">
+      <HintPath>..\..\lib\EliteMMO.API.dll</HintPath>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
 

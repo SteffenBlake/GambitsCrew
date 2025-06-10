@@ -7,17 +7,27 @@
     <Nullable>enable</Nullable>
     <PlatformTarget>x86</PlatformTarget>
     <LangVersion>preview</LangVersion>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <Content Include="..\..\lib\EliteAPI.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="EliteMMO.API">
       <HintPath>..\..\lib\EliteMMO.API.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Reference Include="EliteMMO.API">
+      <HintPath>..\..\lib\EliteMMO.API.dll</HintPath>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
 
