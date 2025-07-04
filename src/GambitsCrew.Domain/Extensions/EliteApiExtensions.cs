@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using EliteMMO.API;
 
 namespace GambitsCrew.Domain.Extensions;
@@ -20,6 +21,29 @@ public static class EliteApiExtensions
         api.PartyMembers()
             .Where(p => p.IsPartyLeader())
             .FirstOrDefault();
+
+    public static EliteAPI.PartyMember? PlayerMember(this IEliteAPI api) =>
+        api.AllianceMembers.FirstOrDefault();
+
+    public static EliteAPI.EntityEntry? PlayerEntity(this IEliteAPI api)
+    {
+        var index = api.PlayerMember()?.TargetIndex;
+        return !index.HasValue ? null : api.GetEntity((int)index.Value);
+    }
+
+    public static EliteAPI.EntityEntry PlayerEntity(
+        this IEliteAPI api, EliteAPI.PartyMember member
+    ) => api.GetEntity((int)member.TargetIndex)!;
+
+    public static EliteAPI.EntityEntry? PlayerPet(this IEliteAPI api)
+    {
+        var petIndex = api.PlayerEntity()?.PetIndex;
+        return petIndex.HasValue ? api.GetEntity(petIndex.Value) : null;
+    }
+
+    public static EliteAPI.EntityEntry? PetEntity(
+        this IEliteAPI api, EliteAPI.EntityEntry entity
+    ) => api.GetEntity(entity.PetIndex);
 
     public static EliteAPI.EntityEntry? PartyLeaderEntity(this IEliteAPI api)
     {
@@ -80,17 +104,12 @@ public static class EliteApiExtensions
             };
         }
 
-        var type = (EntityTypes)entity.Type;
-        if (type.HasFlag(EntityTypes.Player))
+        return (EntityTypes)entity.Type switch
         {
-            return TargetType.Player;
-        }
-        if (type.HasFlag(EntityTypes.Npc2))
-        {
-            return TargetType.Enemy;
-        }
-
-        return TargetType.Unknown;
+            EntityTypes.Player => TargetType.Player,
+            EntityTypes.Npc2 => TargetType.Enemy,
+            _ => TargetType.Unknown
+        };
     }
 
     public static IEnumerable<EliteAPI.EntityEntry> ScanEnemies(this IEliteAPI api)
@@ -103,6 +122,7 @@ public static class EliteApiExtensions
                 e.Exists() && 
                 !((EntityStatus)e.Status).HasFlag(EntityStatus.Dead)
             )
+            .OrderBy(e => e!.Distance)
             .Cast<EliteAPI.EntityEntry>();
     }
 
@@ -114,7 +134,7 @@ public static class EliteApiExtensions
         // Check enemies our alliance are targeting first as a shortcut
         foreach(var member in alliance)
         {
-            if (member.TargetingIndex <= 0 || member.TargetingIndex >= 1025)
+            if (member.TargetingIndex is <= 0 or >= 1025)
             {
                 continue;
             }
@@ -231,6 +251,119 @@ public static class EliteApiExtensions
         do
         {
             await Task.Delay(500, cancellationToken);
-        } while (api.PlayerEntity.IsBusy());
+        } while ((api.PlayerEntity()?.IsBusy() ?? true) && !cancellationToken.IsCancellationRequested);
     }
+
+    public static bool SetAutoFollowCoords(
+        this IEliteAPI api, EliteAPI.EntityEntry entity
+    )
+    {
+        if (entity.Distance > 100 || !entity.Exists())
+        {
+            return false;
+        }
+        if (entity.Distance <= 1)
+        {
+            return true;
+        }
+        var player = api.PlayerEntity();
+        if (player == null)
+        {
+            return false;
+        }
+
+        var dx = entity.X - player.X;
+        var dy = entity.Y - player.Y;
+        var dz = entity.Z - player.Z;
+        return api.SetAutoFollowCoords(dx, dy, dz);
+    }
+
+    public static async Task<bool> AutoFollowAsync(
+        this IEliteAPI api, 
+        int entityIndex, 
+        CancellationToken cancellationToken,
+        int minThreshold = 3, 
+        int maxThreshold = 5
+    )
+    {
+        if(minThreshold >= maxThreshold)
+        {
+            throw new ValidationException(
+                $"Expected MinThreshold < Maxthreshold, Actual: {minThreshold}(min) vs {maxThreshold}(max)"
+            );
+        }
+
+        var entity = api.GetEntity(entityIndex);
+        if (entity != null && entity.Exists() && entity.Distance < maxThreshold)
+        {
+            return true;
+        }
+
+        while (
+            entity != null && 
+            entity.Exists() &&
+            entity.Distance > minThreshold &&
+            !cancellationToken.IsCancellationRequested
+        )
+        {
+            if (!api.SetAutoFollowCoords(entity))
+            {
+                return false;
+            }
+
+            await Task.Delay(500, cancellationToken);
+
+            entity = api.GetEntity(entityIndex);
+        }
+
+        api.CancelAutoFollow();
+
+        return entity != null && entity.Exists() && entity.Distance < minThreshold;
+    }
+
+    public static bool IsFacing(
+        this EliteAPI.EntityEntry self, EliteAPI.EntityEntry other, float tolerance = 0.03f
+    )
+    {
+        var targetHeading = self.HeadingTowards(other);
+        var currentHeading = self.H;
+
+        var absoluteAngularError = MathF.Abs(NormalizeAngle(currentHeading - targetHeading));
+        var percentOff = absoluteAngularError / MathF.PI;
+        return percentOff <= tolerance;
+    }
+
+    public static float HeadingTowards(this EliteAPI.EntityEntry self, EliteAPI.EntityEntry other)
+    {
+        var dx = other.X - self.X;
+        var dz = other.Z - self.Z;
+        return (float)Math.Atan2(-dz, dx);
+    }
+
+    public static void FaceTowards(this IEliteAPI api, EliteAPI.EntityEntry player, EliteAPI.EntityEntry other)
+    {
+        var headingTowards = player.HeadingTowards(other);
+        api.SetPlayerHeading(headingTowards);
+    }
+
+    public static void FaceAwayFrom(this IEliteAPI api, EliteAPI.EntityEntry player, EliteAPI.EntityEntry other)
+    {
+        var headingTowards = player.HeadingTowards(other);
+        var headingAway = NormalizeAngle(headingTowards + MathF.PI);
+        api.SetPlayerHeading(headingAway);
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        while (angle > MathF.PI)
+        {
+            angle -= MathF.PI * 2;
+        }
+        while (angle < -MathF.PI)
+        {
+            angle += MathF.PI * 2;
+        }
+        return angle;
+    }
+
 }

@@ -14,7 +14,7 @@ public record AllianceOtherSelector(
         {
             ctx.ContextualEntity = a;
             ctx.ContextualTarget = a.Name;
-            if (AX.All(condition => condition.Eval(ctx)))
+            if (AX.All(condition => condition.Eval(ctx, api)))
             {
                 return true;
             }

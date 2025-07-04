@@ -7,7 +7,7 @@ public record HppCondition(
     List<INumberOperator> HPP
 ) : ICondition
 {
-    public bool Eval(GambitContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
         if (ctx.ContextualEntity == null)
         {

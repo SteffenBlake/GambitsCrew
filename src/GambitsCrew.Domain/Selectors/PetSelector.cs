@@ -1,4 +1,5 @@
 using GambitsCrew.Domain.Conditions;
+using GambitsCrew.Domain.Extensions;
 using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
@@ -9,7 +10,7 @@ public record PetSelector(
 {
     public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        var pet = api.PetEntity;
+        var pet = api.PlayerPet();
         if (pet == null)
         {
             return false;
@@ -17,6 +18,6 @@ public record PetSelector(
         ctx.ContextualEntity = pet;
         ctx.ContextualTarget = "<pet>";
 
-        return Pet.All(condition => condition.Eval(ctx));
+        return Pet.All(condition => condition.Eval(ctx, api));
     }
 }

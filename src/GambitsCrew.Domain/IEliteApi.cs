@@ -5,21 +5,15 @@ namespace GambitsCrew.Domain;
 
 public interface IEliteAPI
 {
-    EliteAPI.PartyMember PlayerMember { get; }
-
-    EliteAPI.EntityEntry PlayerEntity { get; }
-
-    EliteAPI.EntityEntry? PetEntity { get; }
-
     IEnumerable<EliteAPI.PartyMember> AllianceMembers { get; }
 
     EliteAPI.EntityEntry? GetEntity(int index);
-
 
     EliteAPI.TargetInfo? Target { get; }
 
     void SetTarget(int index);
 
+    void SetPlayerHeading(float heading);
 
     EliteAPI.IItem GetItem(string name);
 
@@ -43,7 +37,11 @@ public interface IEliteAPI
 
     bool PlayerHasWeaponskill(uint id);
 
+    bool SetAutoFollowCoords(float fX, float fY, float fZ);
+    void CancelAutoFollow();
+
     void SendString(string v);
+    short[] PlayerBuffs();
 }
 
 public class EliteApiWrapper(EliteAPI api) : IEliteAPI
@@ -80,7 +78,6 @@ public class EliteApiWrapper(EliteAPI api) : IEliteAPI
         return null;
     }
 
-
     public EliteAPI.TargetInfo? Target
     {
         get
@@ -99,6 +96,12 @@ public class EliteApiWrapper(EliteAPI api) : IEliteAPI
         api.Target.SetTarget(index);
     }
 
+    public void SetPlayerHeading(float heading)
+    {
+        api.Entity.GetLocalPlayer().H = heading;
+    }
+
+    public short[] PlayerBuffs() => api.Player.Buffs;
 
     public EliteAPI.IItem GetItem(string name)
     {
@@ -162,7 +165,7 @@ public class EliteApiWrapper(EliteAPI api) : IEliteAPI
 
     public bool PlayerHasSpell(uint id)
     {
-        return api.Player.HasSpell(id); 
+        return api.Player.HasSpell(id);
     }
 
     public int GetSpellRecast(int index)
@@ -173,6 +176,23 @@ public class EliteApiWrapper(EliteAPI api) : IEliteAPI
     public bool PlayerHasWeaponskill(uint id)
     {
         return api.Player.HasWeaponSkill(id);
+    }
+
+    public bool SetAutoFollowCoords(float fX, float fY, float fZ)
+    {
+        if(api.AutoFollow.SetAutoFollowCoords(fX, fY, fZ))
+        {
+            api.AutoFollow.IsAutoFollowing = true;
+            return true;
+        }
+
+        api.AutoFollow.IsAutoFollowing = false;
+        return false;
+    }
+
+    public void CancelAutoFollow()
+    {
+        api.AutoFollow.IsAutoFollowing = false;
     }
 
     public void SendString(string str)

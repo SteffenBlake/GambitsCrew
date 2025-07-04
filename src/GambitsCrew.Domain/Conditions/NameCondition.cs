@@ -7,7 +7,7 @@ public record NameCondition(
     List<IStringOperator> Name
 ) : ICondition
 {
-    public bool Eval(GambitContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
         if (ctx.ContextualEntity == null)
         {

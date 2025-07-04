@@ -15,7 +15,7 @@ public record ScanSelector(
             ctx.ContextualEntity = entity;
             ctx.ContextualTarget = entity.TargetingIndex.ToString();
 
-            if(Scan.All(condition => condition.Eval(ctx)))
+            if(Scan.All(condition => condition.Eval(ctx, api)))
             {
                 return true;
             }

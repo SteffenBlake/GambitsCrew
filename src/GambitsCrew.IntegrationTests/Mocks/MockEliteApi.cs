@@ -5,19 +5,20 @@ namespace GambitsCrew.IntegrationTests.Mocks;
 
 public class MockEliteApi : IEliteAPI
 {
-    public EliteAPI.PartyMember PlayerMember { get; } = new();
-
-    public EliteAPI.EntityEntry PlayerEntity { get; } = new();
-
-    public EliteAPI.EntityEntry? PetEntity { get; } = null;
-
-    public EliteAPI.PartyMember[] AllianceMembersRaw = [.. 
+    public EliteAPI.PartyMember[] AllianceMembersRaw = [..
         Enumerable.Range(0, 18).Select(_ => new EliteAPI.PartyMember())
     ];
-
     public IEnumerable<EliteAPI.PartyMember> AllianceMembers => AllianceMembersRaw;
 
     public EliteAPI.TargetInfo? Target { get; } = null;
+
+    public IReadOnlyList<int> SetTargets => _setTargets;
+    private readonly List<int> _setTargets = [];
+    public void SetTarget(int index) => _setTargets.Add(index);
+
+    public IReadOnlyList<float> SetHeadings => _setHeadings;
+    private readonly List<float> _setHeadings = [];
+    public void SetPlayerHeading(float heading) => _setHeadings.Add(heading);
 
     public Dictionary<string, EliteAPI.IAbility> AbilitiesByName { get; } = [];
     public EliteAPI.IAbility GetAbility(string name)
@@ -75,7 +76,20 @@ public class MockEliteApi : IEliteAPI
     private readonly List<string> _sentStrings = [];
     public void SendString(string str) => _sentStrings.Add(str);
 
-    public IReadOnlyList<int> SetTargets => _setTargets;
-    private readonly List<int> _setTargets = [];
-    public void SetTarget(int index) => _setTargets.Add(index);
+    public bool IsAutoFollowing { get; set; } = false;
+    public IReadOnlyList<(float fX, float fY, float fZ)> SetCoords => _setCoords;
+    private readonly List<(float fX, float fY, float fZ)> _setCoords = [];
+    public bool SetAutoFollowCoords(float fX, float fY, float fZ)
+    {
+        _setCoords.Add((fX, fY, fZ));
+        IsAutoFollowing = true;
+        return true;
+    }
+    public void CancelAutoFollow()
+    {
+        IsAutoFollowing = false;
+    }
+
+    public short[] PlayerBuffsList { get; } = new short[32];
+    public short[] PlayerBuffs() => PlayerBuffsList;
 }

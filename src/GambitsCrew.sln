@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GambitsCrew.CLI", "GambitsC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GambitsCrew.IntegrationTests", "GambitsCrew.IntegrationTests\GambitsCrew.IntegrationTests.csproj", "{E0533C9D-6E62-49C4-B883-9EE5DFFBB368}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GambitsCrew.LocalTesting", "GambitsCrew.LocalTesting\GambitsCrew.LocalTesting.csproj", "{D167CD12-F029-455E-A252-EC7CEC90E94A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{E0533C9D-6E62-49C4-B883-9EE5DFFBB368}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0533C9D-6E62-49C4-B883-9EE5DFFBB368}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0533C9D-6E62-49C4-B883-9EE5DFFBB368}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D167CD12-F029-455E-A252-EC7CEC90E94A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D167CD12-F029-455E-A252-EC7CEC90E94A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D167CD12-F029-455E-A252-EC7CEC90E94A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D167CD12-F029-455E-A252-EC7CEC90E94A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

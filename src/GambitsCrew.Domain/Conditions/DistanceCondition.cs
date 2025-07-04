@@ -7,7 +7,7 @@ public record DistanceCondition(
     List<INumberOperator> Distance
 ) : ICondition
 {
-    public bool Eval(GambitContext ctx)
+    public bool Eval(GambitContext ctx, IEliteAPI api)
     {
         if (ctx.ContextualEntity == null)
         {

@@ -14,7 +14,9 @@ public record ItemCommand(
     ItemCommandInfo Item
 ) : ICommand
 {
-    public async Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public async Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
@@ -25,17 +27,24 @@ public record ItemCommand(
         {
             throw new ArgumentException($"Item is not useable: '{Item.Name}'");
         }
-       
+      
+        var playerEntity = api.PlayerEntity();
         // Check busy
-        if (api.PlayerEntity.IsBusy())
+        if (playerEntity == null ||  playerEntity.IsBusy())
         {
-            return false;
+            return GambitFail.Default;
+        }
+
+        // Check idle
+        if (!playerEntity.IsIdle())
+        {
+            return GambitFail.Default;
         }
 
         // Check inventory
         if (!api.GetInventory().Any(i => i.Id == (ushort)item.ItemID))
         {
-            return false;
+            return GambitFail.Default;
         }
 
         var validTargets = (TargetType)item.ValidTargets;
@@ -51,7 +60,7 @@ public record ItemCommand(
             );
         }
 
-        api.SendString($"/item {Item.Name} <me>");
+        api.SendString($"/item \"{Item.Name}\" <me>");
         
         // Wait for busy to finish
         await api.WaitForPlayerNotBusy(cancellationToken);
@@ -62,6 +71,6 @@ public record ItemCommand(
             await Task.Delay(TimeSpan.FromSeconds(Item.Wait.Value), cancellationToken);
         }
         
-        return true;
+        return GambitSuccess.Hashed(_id, item.ItemID);
     }
 }

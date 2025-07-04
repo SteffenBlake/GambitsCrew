@@ -36,9 +36,21 @@ public class ConditionJsonConverter(
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
 
+        if (raw.ContainsKey("buffs"))
+        {
+            return raw.Deserialize<BuffsCondition>(options);
+        }
+        if (raw.ContainsKey("claimed"))
+        {
+            return raw.Deserialize<ClaimedCondition>(options);
+        }
         if (raw.ContainsKey("distance"))
         {
             return raw.Deserialize<DistanceCondition>(options);
+        }
+        if (raw.ContainsKey("facingTowards"))
+        {
+            return raw.Deserialize<FacingTowardsCondition>(options);
         }
         if (raw.ContainsKey("hpp"))
         {
@@ -55,6 +67,10 @@ public class ConditionJsonConverter(
         if (raw.ContainsKey("status"))
         {
             return raw.Deserialize<StatusCondition>(options);
+        }
+        if (raw.ContainsKey("tp"))
+        {
+            return raw.Deserialize<TpCondition>(options);
         }
 
         throw new JsonException();

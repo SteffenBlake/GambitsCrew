@@ -1,10 +1,9 @@
-using System.Diagnostics;
 using System.Text.Json;
-using EliteMMO.API;
 using GambitsCrew.Domain;
 using GambitsCrew.Domain.Deployments;
 using GambitsCrew.Domain.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace GambitsCrew.CLI.Run;
 
@@ -12,12 +11,11 @@ public static class RunCmd
 {
     internal static async Task<int> RunAsync(RunOptions options)
     {
-        var cts = new CancellationTokenSource();
-
         var path = Path.GetFullPath(
             Path.Combine(Directory.GetCurrentDirectory(), options.Path)
         );
         var cwd = Path.GetDirectoryName(path) ?? throw new InvalidOperationException();
+        options.Path = path;
 
         Console.WriteLine(
             $"Using CWD: '{cwd}'"
@@ -25,38 +23,15 @@ public static class RunCmd
 
         var fileProvider = new ProjectFileProviderService(cwd);
 
-        var services = new ServiceCollection()
+        var app = Host.CreateApplicationBuilder();
+
+        app.Services
             .AddDomainServices()
             .AddSingleton<IFileProviderService>(fileProvider)
+            .AddSingleton(options)
             .BuildServiceProvider();
 
-        var serializerOptions = services.GetRequiredService<JsonSerializerOptionsBuilder>()
-            .Compile();
-
-        var data = File.OpenRead(path);
-        var deployment = (await JsonSerializer.DeserializeAsync<Deployment>(
-                data, serializerOptions
-            )) ?? throw new InvalidOperationException(
-                $"Unable to serialize deployment '{options.Path}'"
-            );
-
-        Console.WriteLine(JsonSerializer.Serialize(deployment));
-
-        List<Task> runners = [];
-
-        var crew = deployment.Crew.ToDictionary(c => c.Name, c => c);
-
-        var processes = Process.GetProcessesByName("pol");
-        foreach (var process in processes)
-        {
-            var api = new EliteAPI(process.Id);
-            if (crew.TryGetValue(api.Player.Name, out var crewMember))
-            {
-                runners.Add(crewMember.RunAsync(api, cts.Token));
-            }
-        }
-
-        await Task.WhenAll(runners);
+        await app.Build().RunAsync();
 
         return 0;
     }

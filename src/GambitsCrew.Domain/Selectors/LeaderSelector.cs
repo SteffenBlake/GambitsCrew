@@ -17,6 +17,6 @@ public record LeaderSelector(
         }
         ctx.ContextualEntity = leader;
         ctx.ContextualTarget = leader.Name;
-        return L.All(condition => condition.Eval(ctx));
+        return L.All(condition => condition.Eval(ctx, api));
     }
 }

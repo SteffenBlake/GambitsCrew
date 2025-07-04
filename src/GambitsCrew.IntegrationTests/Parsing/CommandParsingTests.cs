@@ -176,6 +176,59 @@ $$"""
     }
 
     [Fact]
+    public void Parsing_FaceTowardsCommand_Succeeds()
+    {
+        // Arrange
+        var commandFaceTowards = false;
+        var data =
+$$"""
+{
+    "faceTowards": {{commandFaceTowards.ToString().ToLower()}}
+}
+""";
+
+        // Act
+        var command = JsonSerializer.Deserialize<ICommand>(data, JsonSerializerOptions);
+
+        // Assert
+        var execute = command as FaceTowardsCommand;
+        Assert.NotNull(execute);
+        Assert.Equal(commandFaceTowards, execute.FaceTowards);
+    }
+
+    [Fact]
+    public void Parsing_FollowCommand_Succeeds()
+    {
+        // Arrange
+        var commandMinThreshold = 10;
+        var commandMaxThreshold = 20;
+        var commandTarget = "TestTarget";
+        var commandWait = 5;
+        var data = 
+$$"""
+{
+    "follow": {
+        "min": {{commandMinThreshold}},
+        "max": {{commandMaxThreshold}},
+        "target": "{{commandTarget}}",
+        "wait": {{commandWait}}
+    }
+}
+""";
+
+        // Act
+        var command = JsonSerializer.Deserialize<ICommand>(data, JsonSerializerOptions);
+
+        // Assert
+        var follow = command as FollowCommand;
+        Assert.NotNull(follow);
+        Assert.Equal(commandMinThreshold, follow.Follow.Min);
+        Assert.Equal(commandMaxThreshold, follow.Follow.Max);
+        Assert.Equal(commandTarget, follow.Follow.Target);
+        Assert.Equal(commandWait, follow.Follow.Wait);
+    }
+
+    [Fact]
     public void Parsing_ItemCommand_Succeeds()
     {
         // Arrange
@@ -231,6 +284,30 @@ $$"""
         Assert.Equal(commandName, pet.Pet.Name);
         Assert.Equal(commandTarget, pet.Pet.Target);
         Assert.Equal(commandWait, pet.Pet.Wait);
+    }
+
+
+    [Fact]
+    public void Parsing_TargetCommand_Succeeds() 
+    {
+        // Arrange
+        var commandWait = 10;
+        var data = 
+$$"""
+{
+    "target": {
+        "wait": {{commandWait}}
+    }
+}
+""";
+
+        // Act
+        var command = JsonSerializer.Deserialize<ICommand>(data, JsonSerializerOptions);
+
+        // Assert
+        var ws = command as TargetCommand;
+        Assert.NotNull(ws);
+        Assert.Equal(commandWait, ws.Target.Wait);
     }
 
     [Fact]

@@ -14,12 +14,14 @@ public record AbilityCommand(
     AbilityCommandInfo JA
 ) : ICommand
 {
-    public async Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public async Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
         var ability = api.GetJobAbility(JA.Name);
-
+        
         // Check valid target
         var validTargets = (TargetType)ability.ValidTargets;
         if (!ctx.EnsureContextualTarget(api, JA.Target, validTargets))
@@ -34,49 +36,54 @@ public record AbilityCommand(
             );
         }
 
-        var playerEntity = api.PlayerEntity;
-        // Check busy
-        if (playerEntity.IsBusy())
+        var playerMember = api.PlayerMember();
+        if (playerMember == null)
         {
-            return false;
+            return GambitFail.Default;
         }
 
-        // Check Idle/Engaged 
-        var status = (EntityStatus)playerEntity.Status;
-        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
-        {
-            return false;
-        }
-
-        var player = api.PlayerMember;
         // Check TP
-        if (player.CurrentTP < ability.TP)
+        if (playerMember.CurrentTP < ability.TP)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check MP
-        if (player.CurrentMP < ability.MP)
+        if (playerMember.CurrentMP < ability.MP)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check too far
         if (ctx.ContextualEntity!.Distance > ability.Range)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check can use
         if (!api.PlayerHasAbility(ability.ID))
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check if on cooldown
         if (api.GetRecast(ability) > 0)
         {
-            return false;
+            return GambitFail.Default;
+        }
+
+        var playerEntity = api.PlayerEntity(playerMember);
+
+        // Check busy
+        if (playerEntity.IsBusy())
+        {
+            return GambitFail.Default;
+        }
+
+        // Check Idle/Engaged 
+        if (!playerEntity.IsIdle())
+        {
+            return GambitFail.Default;
         }
 
         api.SendString($"/ja \"{JA.Name}\" {ctx.ContextualTarget}");
@@ -90,6 +97,6 @@ public record AbilityCommand(
             await Task.Delay(TimeSpan.FromSeconds(JA.Wait.Value), cancellationToken);
         }
 
-        return true;
+        return GambitSuccess.Hashed(_id, ctx.ContextualEntity.TargetID, ability.ID);
     }
 }

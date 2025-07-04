@@ -1,10 +1,25 @@
 using System.Text.Json;
+using EliteMMO.API;
 using GambitsCrew.Domain.Operators;
 
 namespace GambitsCrew.IntegrationTests.Parsing;
 
 public class OperatorParsingTests : FileProviderFixture
 { 
+    [Fact]
+    public void Parsing_BuffsContainsOperator_Succeeds()
+    {
+        // Arrange
+        var data = """{ "contains": 5 }""";
+
+        // Act
+        var condition = JsonSerializer.Deserialize<IBuffsOperator>(data, JsonSerializerOptions);
+
+        // Assert
+        var conditionConcrete = condition as BuffsContainsOperator;
+        Assert.NotNull(conditionConcrete);
+        Assert.Equal(5, conditionConcrete.Contains);
+    }
     [Fact]
     public void Parsing_NumberEqualsOperator_Succeeds()
     {
@@ -89,6 +104,20 @@ public class OperatorParsingTests : FileProviderFixture
         Assert.NotNull(conditionConcrete);
     }
 
+    [Fact]
+    public void Parsing_StatusHasFlagOperator_Succeeds()
+    {
+        // Arrange
+        var data = """{ "hasFlag": "Chocobo" }""";
+
+        // Act
+        var condition = JsonSerializer.Deserialize<IStatusOperator>(data, JsonSerializerOptions);
+
+        // Assert
+        var conditionConcrete = condition as StatusHasFlagOperator;
+        Assert.NotNull(conditionConcrete);
+        Assert.Equal(EntityStatus.Chocobo, conditionConcrete.HasFlag);
+    }
 
     [Fact]
     public void Parsing_StringContainsOperator_Succeeds()

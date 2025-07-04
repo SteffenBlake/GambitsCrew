@@ -14,28 +14,12 @@ public record PetCommand(
     PetCommandInfo Pet
 ) : ICommand
 {
-    public async Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public async Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
-        if (api.PetEntity == null)
-        {
-            return false;
-        }
-
-        var playerEntity = api.PlayerEntity;
-        if (playerEntity.IsBusy())
-        {
-            return false;
-        }
-
-        // Check Idle/Engaged 
-        var status = (EntityStatus)playerEntity.Status;
-        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
-        {
-            return false;
-        }
-
         var ability = api.GetPetSkill(Pet.Name);
 
         // Check valid target
@@ -54,35 +38,56 @@ public record PetCommand(
             );
         }
 
-        var playerMember = api.PlayerMember;
+        var playerMember = api.PlayerMember();
+        if (playerMember == null)
+        {
+            return GambitFail.Default;
+        }
         // Check TP
         if (playerMember.CurrentTP < ability.TP)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check MP
         if (playerMember.CurrentMP < ability.MP)
         {
-            return false;
+            return GambitFail.Default;
+        }
+
+        var playerEntity = api.PlayerEntity(playerMember);
+        if (playerEntity.IsBusy())
+        {
+            return GambitFail.Default;
+        }
+
+        // Check Idle/Engaged 
+        if (!playerEntity.IsIdle())
+        {
+            return GambitFail.Default;
+        }
+
+        if (api.PetEntity(playerEntity) == null)
+        {
+            return GambitFail.Default;
         }
 
         // Check can use
         if (!api.PlayerHasAbility(ability.ID))
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check too far
         if (ctx.ContextualEntity!.Distance > ability.Range)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check if on cooldown
         if (api.GetRecast(ability) > 0)
         {
-            return false;
+            return GambitFail.Default;
         }
         
         api.SendString($"/pet \"{Pet.Name}\" {ctx.ContextualTarget}");
@@ -96,6 +101,6 @@ public record PetCommand(
             await Task.Delay(TimeSpan.FromSeconds(Pet.Wait.Value), cancellationToken);
         }
 
-        return true;
+        return GambitSuccess.Hashed(_id, ctx.ContextualEntity.TargetID, ability.ID);
     }
 }

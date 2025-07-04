@@ -6,6 +6,6 @@ public interface ICrewMember
 {
     string Name { get; init; }
     List<IGambit> Gambits { get; init; }
-    Task RunAsync(IEliteAPI api, CancellationToken cancellationToken);
+    Task RunAsync(IEliteAPI api, int maxAttempts, int cycleDelayMs, CancellationToken cancellationToken);
 }
 

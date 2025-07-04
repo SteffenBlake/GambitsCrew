@@ -1,4 +1,5 @@
 using GambitsCrew.Domain.Conditions;
+using GambitsCrew.Domain.Extensions;
 using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Selectors;
@@ -9,9 +10,9 @@ public record MeSelector(
 {
     public bool Eval(GambitContext ctx, IEliteAPI api)
     {
-        ctx.ContextualEntity = api.PlayerEntity;
+        ctx.ContextualEntity = api.PlayerEntity();
         ctx.ContextualTarget = "<me>";
 
-        return Me.All(condition => condition.Eval(ctx));
+        return Me.All(condition => condition.Eval(ctx, api));
     }
 }

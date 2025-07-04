@@ -13,7 +13,9 @@ public record AssistCommand(
     AssistCommandInfo Assist
 ) : ICommand
 {
-    public async Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public async Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
@@ -22,32 +24,35 @@ public record AssistCommand(
         {
             throw new InvalidOperationException("Could not infer a valid target for Assist");
         }
+        var alliance = api.AllianceEntities();
 
         // Find the member to assist
-        var member = api.AllianceEntities().SingleOrDefault(a => a.Name == ctx.ContextualTarget);
+        var member = alliance.SingleOrDefault(a => a.Name == ctx.ContextualTarget);
         if (member == null)
         {
-            return false;
+            return GambitFail.Default;
         }
 
+        var playerEntity = alliance.First();
+
         // Check if we need to do an assist
-        var currentTargetId = api.PlayerEntity.TargetingIndex;
+        var currentTargetId = playerEntity.TargetingIndex;
         var assistTargetId = member.TargetingIndex;
         if (assistTargetId <= 0 || assistTargetId == currentTargetId)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check if too far away
         var assistTargetEntity = api.GetEntity(assistTargetId);
         if (assistTargetEntity == null)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         if (assistTargetEntity.Distance <= 0 || assistTargetEntity.Distance > 49)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Execute
@@ -62,6 +67,6 @@ public record AssistCommand(
             await Task.Delay(TimeSpan.FromSeconds(Assist.Wait.Value), cancellationToken);
         }
 
-        return true;
+        return GambitSuccess.Hashed(_id, assistTargetId);
     }
 }

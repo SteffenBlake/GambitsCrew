@@ -4,7 +4,7 @@ namespace GambitsCrew.Domain.Commands;
 
 public interface ICommand 
 {
-    Task<bool> TryInvokeAsync(
+    Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     );
 }

@@ -4,5 +4,5 @@ namespace GambitsCrew.Domain.Conditions;
 
 public interface ICondition 
 {
-    bool Eval(GambitContext ctx);
+    bool Eval(GambitContext ctx, IEliteAPI api);
 }

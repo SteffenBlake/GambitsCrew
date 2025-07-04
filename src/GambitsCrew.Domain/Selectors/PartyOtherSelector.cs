@@ -14,7 +14,7 @@ public record PartyOtherSelector(
         {
             ctx.ContextualEntity = pt;
             ctx.ContextualTarget = pt.Name;
-            if (PX.All(condition => condition.Eval(ctx)))
+            if (PX.All(condition => condition.Eval(ctx, api)))
             {
                 return true;
             }

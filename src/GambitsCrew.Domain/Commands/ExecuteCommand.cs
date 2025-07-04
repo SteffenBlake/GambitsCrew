@@ -7,11 +7,16 @@ public record ExecuteCommand(
 ) : ICommand
 {
 
-    public Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
         api.SendString(Execute);
-        return Task.FromResult(true);
+
+        return Task.FromResult(
+            (IGambitResult)GambitSuccess.Hashed(_id)
+        );
     }
 }

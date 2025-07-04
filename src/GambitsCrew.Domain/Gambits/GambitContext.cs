@@ -55,9 +55,9 @@ public class GambitContext
     {
         var entity = target switch 
         {
-            "<me>" => api.PlayerEntity,
+            "<me>" => api.PlayerEntity(),
             "<t>" => api.TargetEntity(),
-            "<ldr>" => api.PartyLeaderEntity() ?? api.PlayerEntity,
+            "<ldr>" => api.PartyLeaderEntity() ?? api.PlayerEntity(),
             "<bt>" => api.BattleTarget(),
             _ => api.AllianceEntities().SingleOrDefault(a => a.Name == target)
         };
@@ -77,9 +77,9 @@ public class GambitContext
     {
         if (validTargets == TargetType.Self)
         {
-            ContextualEntity = api.PlayerEntity;
+            ContextualEntity = api.PlayerEntity();
             ContextualTarget = "<me>";
-            return true;
+            return ContextualEntity != null;
         }
         var target = api.TargetEntity();
         if (target == null)

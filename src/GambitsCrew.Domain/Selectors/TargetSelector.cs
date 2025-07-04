@@ -19,6 +19,6 @@ public record TargetSelector(
         ctx.ContextualEntity = target;
         ctx.ContextualTarget = "<t>";
 
-        return T.All(condition => condition.Eval(ctx));
+        return T.All(condition => condition.Eval(ctx, api));
     }
 }

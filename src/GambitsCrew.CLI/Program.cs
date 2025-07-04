@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using CommandLine;
+﻿using CommandLine;
 using GambitsCrew.CLI.Init;
 using GambitsCrew.CLI.NewCommand;
 using GambitsCrew.CLI.NewCondition;
@@ -9,11 +8,6 @@ using GambitsCrew.CLI.NewGambit;
 using GambitsCrew.CLI.NewOperator;
 using GambitsCrew.CLI.NewSelector;
 using GambitsCrew.CLI.Run;
-
-JsonSerializerOptions jsonOptions = new()
-{
-    WriteIndented = true
-};
 
 return await Parser.Default.ParseArguments<
         InitOptions,

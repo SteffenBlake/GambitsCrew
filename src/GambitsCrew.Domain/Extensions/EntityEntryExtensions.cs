@@ -9,4 +9,11 @@ public static class EntityEntryExtensions
 
     public static bool IsBusy(this EliteAPI.EntityEntry entity) =>
         entity.ActionTimer1 > 0;
+
+    private const EntityStatus IdleMask = EntityStatus.Idle | EntityStatus.Engaged;
+    public static bool IsIdle(this EliteAPI.EntityEntry entity)
+    {
+        var status = (EntityStatus)entity.Status;
+        return (status & ~IdleMask) == 0;
+    }
 }

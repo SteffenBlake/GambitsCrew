@@ -8,7 +8,7 @@ public record Gambit(
     ICommand Do
 ) : IGambit
 {
-    public async Task<bool> TryRunAsync(
+    public async Task<IGambitResult> TryRunAsync(
         IEliteAPI api, CancellationToken cancellationToken
     )
     {
@@ -18,6 +18,6 @@ public record Gambit(
             return await Do.TryInvokeAsync(ctx, api, cancellationToken);
         }
 
-        return false;
+        return GambitFail.Default;
     }
 }

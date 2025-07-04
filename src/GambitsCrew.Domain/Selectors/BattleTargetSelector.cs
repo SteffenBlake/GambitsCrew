@@ -19,6 +19,6 @@ public record BattleTargetSelector(
         ctx.ContextualTarget = "<bt>";
         ctx.ContextualEntity = battleTarget;
 
-        return BT.All(condition => condition.Eval(ctx)); 
+        return BT.All(condition => condition.Eval(ctx, api)); 
     }
 }

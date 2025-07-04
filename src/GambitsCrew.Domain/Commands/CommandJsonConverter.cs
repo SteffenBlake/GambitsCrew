@@ -64,6 +64,14 @@ public class CommandJsonConverter(
         {
             return raw.Deserialize<ExecuteCommand>(options);
         }
+        if (raw.ContainsKey("faceTowards"))
+        {
+            return raw.Deserialize<FaceTowardsCommand>(options);
+        }
+        if (raw.ContainsKey("follow"))
+        {
+            return raw.Deserialize<FollowCommand>(options);
+        }
         if (raw.ContainsKey("item"))
         {
             return raw.Deserialize<ItemCommand>(options);
@@ -71,6 +79,10 @@ public class CommandJsonConverter(
         if (raw.ContainsKey("pet"))
         {
             return raw.Deserialize<PetCommand>(options);
+        }
+        if (raw.ContainsKey("target"))
+        {
+            return raw.Deserialize<TargetCommand>(options);
         }
         if (raw.ContainsKey("ws"))
         {

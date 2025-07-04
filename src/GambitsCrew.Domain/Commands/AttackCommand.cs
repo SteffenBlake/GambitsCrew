@@ -1,4 +1,5 @@
 using EliteMMO.API;
+using GambitsCrew.Domain.Extensions;
 using GambitsCrew.Domain.Gambits;
 
 namespace GambitsCrew.Domain.Commands;
@@ -11,7 +12,9 @@ public record AttackCommand(
     AttackCommandInfo Attack
 ) : ICommand
 {
-    public async Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public async Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
@@ -22,40 +25,60 @@ public record AttackCommand(
         }
 
         // Check if enemy
-        var type = (TargetType)ctx.ContextualEntity.Type;
-        if (!type.HasFlag(TargetType.Enemy))
+        var type = (EntityTypes)ctx.ContextualEntity.Type;
+        if (type != EntityTypes.Npc2)
         {
-            return false;
+            return GambitFail.Default;
+        }
+
+        var playerEntity = api.PlayerEntity();
+        if (playerEntity == null)
+        {
+            return GambitFail.Default;
         }
 
         // Check already engaged
-        var status = (EntityStatus)api.PlayerEntity.Status;
-        if (status.HasFlag(EntityStatus.Engaged))
+        var status = (EntityStatus?)playerEntity.Status;
+        if (status.Value.HasFlag(EntityStatus.Engaged))
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check that we are Idle
-        if (!status.HasFlag(EntityStatus.Idle))
+        if (!playerEntity.IsIdle())
         {
-            return false;
+            return GambitFail.Default;
         }
 
-        // TODO : Double check this distance is right
         // Check too far
-        if (ctx.ContextualEntity.Distance > 40)
+        if (ctx.ContextualEntity.Distance >= 29)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         api.SendString("/attack");
 
+        var timeoutTask = Task.Delay(3000, cancellationToken);
+
         // Wait for engaged status to be true
         do
         {
+            var pauseTask = Task.Delay(500, cancellationToken);
+            var next = await Task.WhenAny(timeoutTask, pauseTask);
+            if (next == timeoutTask)
+            {
+                break;
+            }
             await Task.Delay(500, cancellationToken);
-            status = (EntityStatus)api.PlayerEntity.Status;
-        } while (!status.HasFlag(EntityStatus.Engaged));
+            status = (EntityStatus?)api.PlayerEntity()?.Status;
+
+        } while (status != null && !status.Value.HasFlag(EntityStatus.Engaged));
+
+        status = (EntityStatus?)api.PlayerEntity()?.Status;
+        if (status == null || !status.Value.HasFlag(EntityStatus.Engaged))
+        {
+            return GambitFail.Default;
+        }
 
         // Run option added wait time
         if (Attack.Wait.HasValue)
@@ -63,6 +86,6 @@ public record AttackCommand(
             await Task.Delay(TimeSpan.FromSeconds(Attack.Wait.Value), cancellationToken);
         }
 
-        return true;
+        return GambitSuccess.Hashed(_id, ctx.ContextualEntity.TargetID);
     }
 }

@@ -9,7 +9,7 @@ public interface IGambit
 
     ICommand Do { get; init; }
 
-    Task<bool> TryRunAsync(
+    Task<IGambitResult> TryRunAsync(
         IEliteAPI api, CancellationToken cancellationToken
     );
 }

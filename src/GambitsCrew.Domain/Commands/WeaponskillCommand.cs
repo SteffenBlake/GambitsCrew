@@ -14,7 +14,9 @@ public record WeaponskillCommand(
     WeaponskillCommandInfo WS
 ) : ICommand
 {
-    public async Task<bool> TryInvokeAsync(
+    private readonly Guid _id = Guid.NewGuid();
+
+    public async Task<IGambitResult> TryInvokeAsync(
         GambitContext ctx, IEliteAPI api, CancellationToken cancellationToken
     )
     {
@@ -26,37 +28,40 @@ public record WeaponskillCommand(
 
         var ws = api.GetWeaponskill(WS.Name);
 
-        var playerEntity = api.PlayerEntity;
-        // Check busy
-        if (playerEntity.IsBusy())
+        var playerMember = api.PlayerMember();
+        if (playerMember == null)
         {
-            return false;
+            return GambitFail.Default;
         }
-
-        // Check Idle/Engaged 
-        var status = (EntityStatus)playerEntity.Status;
-        if (!status.HasFlag(EntityStatus.Idle) && !status.HasFlag(EntityStatus.Engaged))
-        {
-            return false;
-        }
-
-        var playerMember = api.PlayerMember;
         // Check TP
         if (playerMember.CurrentTP < WS.TP)
         {
-            return false;
+            return GambitFail.Default;
+        }
+
+        var playerEntity = api.PlayerEntity(playerMember);
+        // Check busy
+        if (playerEntity.IsBusy())
+        {
+            return GambitFail.Default;
+        }
+
+        // Check Idle/Engaged 
+        if (!playerEntity.IsIdle())
+        {
+            return GambitFail.Default;
         }
 
         // Check too far
         if (ctx.ContextualEntity.Distance > 5.9f)
         {
-            return false;
+            return GambitFail.Default;
         }
 
         // Check can use WS
         if (!api.PlayerHasWeaponskill(ws.ID))
         {
-            return false;
+            return GambitFail.Default;
         }
 
         api.SendString($"/ws \"{WS.Name}\" {ctx.ContextualTarget}");
@@ -70,7 +75,7 @@ public record WeaponskillCommand(
             await Task.Delay(TimeSpan.FromSeconds(WS.Wait.Value), cancellationToken);
         }
 
-        return true;
+        return GambitSuccess.Hashed(_id, ctx.ContextualEntity.TargetID, ws.ID);
     }
 }
 
