@@ -1,3 +1,4 @@
+using GambitsCrew.Domain.Selectors;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -8,6 +9,30 @@ public class CommandJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<ICommand>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, ICommand?>> _mappings
+        = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "ja", Deserialize<AbilityCommand> },
+            { "all", Deserialize<AllCommand> },
+            { "any", Deserialize<AnyCommand> },
+            { "assist", Deserialize<AssistCommand> },
+            { "attack", Deserialize<AttackCommand> },
+            { "cast", Deserialize<CastCommand> },
+            { "execute", Deserialize<ExecuteCommand> },
+            { "faceTowards", Deserialize<FaceTowardsCommand> },
+            { "follow", Deserialize<FollowCommand> },
+            { "item", Deserialize<ItemCommand> },
+            { "pet", Deserialize<PetCommand> },
+            { "target", Deserialize<TargetCommand> },
+            { "ws", Deserialize<WeaponskillCommand> }
+        };
+
+
     public override ICommand? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -36,60 +61,23 @@ public class CommandJsonConverter(
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
 
-        if (raw.ContainsKey("ja"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<AbilityCommand>(options);
-        }
-        if (raw.ContainsKey("all"))
-        {
-            return raw.Deserialize<AllCommand>(options);
-        }
-        if (raw.ContainsKey("any"))
-        {
-            return raw.Deserialize<AnyCommand>(options);
-        }
-        if (raw.ContainsKey("assist"))
-        {
-            return raw.Deserialize<AssistCommand>(options);
-        }
-        if (raw.ContainsKey("attack"))
-        {
-            return raw.Deserialize<AttackCommand>(options);
-        }
-        if (raw.ContainsKey("cast"))
-        {
-            return raw.Deserialize<CastCommand>(options);
-        }
-        if (raw.ContainsKey("execute"))
-        {
-            return raw.Deserialize<ExecuteCommand>(options);
-        }
-        if (raw.ContainsKey("faceTowards"))
-        {
-            return raw.Deserialize<FaceTowardsCommand>(options);
-        }
-        if (raw.ContainsKey("follow"))
-        {
-            return raw.Deserialize<FollowCommand>(options);
-        }
-        if (raw.ContainsKey("item"))
-        {
-            return raw.Deserialize<ItemCommand>(options);
-        }
-        if (raw.ContainsKey("pet"))
-        {
-            return raw.Deserialize<PetCommand>(options);
-        }
-        if (raw.ContainsKey("target"))
-        {
-            return raw.Deserialize<TargetCommand>(options);
-        }
-        if (raw.ContainsKey("ws"))
-        {
-            return raw.Deserialize<WeaponskillCommand>(options);
+            throw new JsonException(
+                $"Unexpected property count for Command, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized Command key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(

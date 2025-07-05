@@ -27,7 +27,7 @@ public class CrewMemberJsonConverter(
             catch (JsonException ex)
             {
                 throw new JsonException(
-                    $"Error serializing Condition: '{name}', see inner exception for details.", 
+                    $"Error serializing Crew Member: '{name}', see inner exception for details.", 
                     ex
                 );
             }

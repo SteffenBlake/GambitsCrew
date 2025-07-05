@@ -8,6 +8,17 @@ public class StatusOperatorJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<IStatusOperator>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, IStatusOperator?>> _mappings
+        = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "hasFlag", Deserialize<StatusHasFlagOperator> },
+        };
+
     public override IStatusOperator? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -28,20 +39,30 @@ public class StatusOperatorJsonConverter(
             catch (JsonException ex)
             {
                 throw new JsonException(
-                    $"Error serializing Operator: '{name}', see inner exception for details.", 
+                    $"Error serializing Status Operator: '{name}', see inner exception for details.", 
                     ex
                 );
             }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
-
-        if (raw.ContainsKey("hasFlag"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<StatusHasFlagOperator>(options);
+            throw new JsonException(
+                $"Unexpected property count for Status Operator, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized Status Operator key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(

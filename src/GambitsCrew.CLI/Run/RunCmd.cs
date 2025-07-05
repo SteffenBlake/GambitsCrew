@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using GambitsCrew.Domain;
 using GambitsCrew.Domain.Deployments;
@@ -11,6 +12,9 @@ public static class RunCmd
 {
     internal static async Task<int> RunAsync(RunOptions options)
     {
+        var exeDir = AppContext.BaseDirectory;
+        Console.WriteLine($"Executing Directory: {exeDir}");
+
         var path = Path.GetFullPath(
             Path.Combine(Directory.GetCurrentDirectory(), options.Path)
         );
@@ -29,7 +33,7 @@ public static class RunCmd
             .AddDomainServices()
             .AddSingleton<IFileProviderService>(fileProvider)
             .AddSingleton(options)
-            .BuildServiceProvider();
+            .AddHostedService<RunCmdBackgroundService>();
 
         await app.Build().RunAsync();
 

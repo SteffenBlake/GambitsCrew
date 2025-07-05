@@ -8,6 +8,22 @@ public class NumberOperatorJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<INumberOperator>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, INumberOperator?>> _mappings
+        = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "eq", Deserialize<NumberEqualsOperator> },
+            { "gt", Deserialize<NumberGreaterThanOperator> },
+            { "gte", Deserialize<NumberGreaterThanOrEqualsOperator> },
+            { "lt", Deserialize<NumberLessThanOperator> },
+            { "lte", Deserialize<NumberLessThanOrEqualsOperator> },
+            { "ne", Deserialize<NumberNotEqualsOperator> }
+        };
+
     public override INumberOperator? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -27,40 +43,30 @@ public class NumberOperatorJsonConverter(
             catch (JsonException ex)
             {
                 throw new JsonException(
-                    $"Error serializing Operator: '{name}', see inner exception for details.", 
+                    $"Error serializing Number Operator: '{name}', see inner exception for details.", 
                     ex
                 );
             }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
-
-        if (raw.ContainsKey("eq"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<NumberEqualsOperator>(options);
-        }
-        if (raw.ContainsKey("gt"))
-        {
-            return raw.Deserialize<NumberGreaterThanOperator>(options);
-        }
-        if (raw.ContainsKey("gte"))
-        {
-            return raw.Deserialize<NumberGreaterThanOrEqualsOperator>(options);
-        }
-        if (raw.ContainsKey("lt"))
-        {
-            return raw.Deserialize<NumberLessThanOperator>(options);
-        }
-        if (raw.ContainsKey("lte"))
-        {
-            return raw.Deserialize<NumberLessThanOrEqualsOperator>(options);
-        }
-        if (raw.ContainsKey("ne"))
-        {
-            return raw.Deserialize<NumberNotEqualsOperator>(options);
+            throw new JsonException(
+                $"Unexpected property count for Number Operator, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized Number Operator key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(

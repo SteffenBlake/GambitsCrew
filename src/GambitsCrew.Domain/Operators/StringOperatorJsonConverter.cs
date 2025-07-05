@@ -8,6 +8,21 @@ public class StringOperatorJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<IStringOperator>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, IStringOperator?>> _mappings
+        = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "contains", Deserialize<StringContainsOperator> },
+            { "eq", Deserialize<StringEqualsOperator> },
+            { "ne", Deserialize<StringNotEqualsOperator> },
+            { "lower", Deserialize<StringToLowerOperator> }
+        };
+
+
     public override IStringOperator? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -28,32 +43,30 @@ public class StringOperatorJsonConverter(
             catch (JsonException ex)
             {
                 throw new JsonException(
-                    $"Error serializing Operator: '{name}', see inner exception for details.", 
+                    $"Error serializing String Operator: '{name}', see inner exception for details.", 
                     ex
                 );
             }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
-
-        if (raw.ContainsKey("contains"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<StringContainsOperator>(options);
-        }
-        if (raw.ContainsKey("eq"))
-        {
-            return raw.Deserialize<StringEqualsOperator>(options);
-        }
-        if (raw.ContainsKey("ne"))
-        {
-            return raw.Deserialize<StringNotEqualsOperator>(options);
-        }
-        if (raw.ContainsKey("lower"))
-        {
-            return raw.Deserialize<StringToLowerOperator>(options);
+            throw new JsonException(
+                $"Unexpected property count for String Operator, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized String Operator key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(

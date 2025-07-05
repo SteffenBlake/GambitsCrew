@@ -8,6 +8,29 @@ public class SelectorJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<ISelector>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, ISelector?>> _mappings 
+        = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "a", Deserialize<AllianceSelector> },
+        { "ax", Deserialize<AllianceOtherSelector> },
+        { "and", Deserialize<AndSelector> },
+        { "bt", Deserialize<BattleTargetSelector> },
+        { "l", Deserialize<LeaderSelector> },
+        { "me", Deserialize<MeSelector> },
+        { "not", Deserialize<NotSelector> },
+        { "or", Deserialize<OrSelector> },
+        { "px", Deserialize<PartyOtherSelector> },
+        { "p", Deserialize<PartySelector> },
+        { "pet", Deserialize<PetSelector> },
+        { "scan", Deserialize<ScanSelector> },
+        { "t", Deserialize<TargetSelector> }
+    };
+
     public override ISelector? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -36,60 +59,23 @@ public class SelectorJsonConverter(
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
 
-        if (raw.ContainsKey("a"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<AllianceSelector>(options);
-        }
-        if (raw.ContainsKey("ax"))
-        {
-            return raw.Deserialize<AllianceOtherSelector>(options);
-        }
-        if (raw.ContainsKey("and"))
-        {
-            return raw.Deserialize<AndSelector>(options);
-        }
-        if (raw.ContainsKey("bt"))
-        {
-            return raw.Deserialize<BattleTargetSelector>(options);
-        }
-        if (raw.ContainsKey("l"))
-        {
-            return raw.Deserialize<LeaderSelector>(options);
-        }
-        if (raw.ContainsKey("me"))
-        {
-            return raw.Deserialize<MeSelector>(options);
-        }
-        if (raw.ContainsKey("not"))
-        {
-            return raw.Deserialize<NotSelector>(options);
-        }
-        if (raw.ContainsKey("or"))
-        {
-            return raw.Deserialize<OrSelector>(options);
-        }
-        if (raw.ContainsKey("px"))
-        {
-            return raw.Deserialize<PartyOtherSelector>(options);
-        }
-        if (raw.ContainsKey("p"))
-        {
-            return raw.Deserialize<PartySelector>(options);
-        }
-        if (raw.ContainsKey("pet"))
-        {
-            return raw.Deserialize<PetSelector>(options);
-        }
-        if (raw.ContainsKey("scan"))
-        {
-            return raw.Deserialize<ScanSelector>(options);
-        }
-        if (raw.ContainsKey("t"))
-        {
-            return raw.Deserialize<TargetSelector>(options);
+            throw new JsonException(
+                $"Unexpected property count for Selector, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized Selector key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(

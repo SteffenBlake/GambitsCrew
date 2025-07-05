@@ -7,6 +7,11 @@ public class GenericListJsonConverter<T> : JsonConverter<List<T>>
 {
     public override List<T>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        if (reader.TokenType == JsonTokenType.StartObject)
+        {
+            return [JsonSerializer.Deserialize<T>(ref reader, options)];
+        }
+
         if (reader.TokenType != JsonTokenType.StartArray)
             throw new JsonException();
 

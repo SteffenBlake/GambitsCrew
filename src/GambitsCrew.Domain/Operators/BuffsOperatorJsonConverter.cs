@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using GambitsCrew.Domain.Conditions;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
@@ -8,6 +9,17 @@ public class BuffsOperatorJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<IBuffsOperator>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, IBuffsOperator?>> _mappings
+        = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "contains", Deserialize<BuffsContainsOperator> },
+        };
+
     public override IBuffsOperator? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -27,20 +39,30 @@ public class BuffsOperatorJsonConverter(
             catch (JsonException ex)
             {
                 throw new JsonException(
-                    $"Error serializing Operator: '{name}', see inner exception for details.", 
+                    $"Error serializing Buffs Operator: '{name}', see inner exception for details.", 
                     ex
                 );
             }
         }
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
-
-        if (raw.ContainsKey("contains"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<BuffsContainsOperator>(options);
+            throw new JsonException(
+                $"Unexpected property count for Buffs Operator, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized Buffs Operator key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(

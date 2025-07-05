@@ -8,6 +8,25 @@ public class ConditionJsonConverter(
     IFileProviderService fileProvider
 ) : JsonConverter<ICondition>
 {
+    private static T? Deserialize<T>(JsonObject raw, JsonSerializerOptions options)
+    {
+        return raw.Deserialize<T>(options);
+    }
+
+    private static readonly Dictionary<string, Func<JsonObject, JsonSerializerOptions, ICondition?>> _mappings
+        = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "buffs", Deserialize<BuffsCondition> },
+            { "claimed", Deserialize<ClaimedCondition> },
+            { "distance", Deserialize<DistanceCondition> },
+            { "facingTowards", Deserialize<FacingTowardsCondition> },
+            { "hpp", Deserialize<HppCondition> },
+            { "mpp", Deserialize<MppCondition> },
+            { "name", Deserialize<NameCondition> },
+            { "status", Deserialize<StatusCondition> },
+            { "tp", Deserialize<TpCondition> }
+        };
+
     public override ICondition? Read(
         ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options
     )
@@ -36,44 +55,23 @@ public class ConditionJsonConverter(
 
         var raw = JsonSerializer.Deserialize<JsonObject>(ref reader, options)!;
 
-        if (raw.ContainsKey("buffs"))
+        if (raw.Count > 1)
         {
-            return raw.Deserialize<BuffsCondition>(options);
-        }
-        if (raw.ContainsKey("claimed"))
-        {
-            return raw.Deserialize<ClaimedCondition>(options);
-        }
-        if (raw.ContainsKey("distance"))
-        {
-            return raw.Deserialize<DistanceCondition>(options);
-        }
-        if (raw.ContainsKey("facingTowards"))
-        {
-            return raw.Deserialize<FacingTowardsCondition>(options);
-        }
-        if (raw.ContainsKey("hpp"))
-        {
-            return raw.Deserialize<HppCondition>(options);
-        }
-        if (raw.ContainsKey("mpp"))
-        {
-            return raw.Deserialize<MppCondition>(options);
-        }
-        if (raw.ContainsKey("name"))
-        {
-            return raw.Deserialize<NameCondition>(options);
-        }
-        if (raw.ContainsKey("status"))
-        {
-            return raw.Deserialize<StatusCondition>(options);
-        }
-        if (raw.ContainsKey("tp"))
-        {
-            return raw.Deserialize<TpCondition>(options);
+            throw new JsonException(
+                $"Unexpected property count for Condition, expected 1, got {raw.Count}"
+            );
         }
 
-        throw new JsonException();
+        var key = raw.Single().Key;
+
+        if (_mappings.TryGetValue(key.ToLower(), out var mapping))
+        {
+            return mapping(raw, options);
+        }
+
+        throw new JsonException(
+            $"Unrecognized Condition key '{key}', expected one of: '{string.Join('|', _mappings.Keys)}'"
+        );
     }
 
     public override void Write(Utf8JsonWriter writer, ICondition value, JsonSerializerOptions options)

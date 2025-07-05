@@ -484,3 +484,4 @@ $RECYCLE.BIN/
 *.swp
 lib/EliteAPI.dll
 lib/EliteMMO.API.dll
+launchSettings.json
