@@ -28,6 +28,7 @@
     <Reference Include="EliteMMO.API">
       <HintPath>..\..\lib\EliteMMO.API.dll</HintPath>
       <Private>false</Private>
+      <IncludeRuntimeDependency>true</IncludeRuntimeDependency>
     </Reference>
   </ItemGroup>
 
